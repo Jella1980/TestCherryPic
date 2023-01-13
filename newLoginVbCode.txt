@@ -1,0 +1,517 @@
+Imports System.Text.RegularExpressions
+Imports MySql.Data.MySqlClient
+Imports System.Configuration
+Imports System.IO.File
+Imports System.IO
+Imports System
+
+
+Public Class Login
+    'variables getting  values from the database on server
+    Public uid As String 'Unique key for comparing tables users, model and model2
+    Public db_device_id As String
+    Public db_serial_Key As String
+    Public db_activationKey As String
+    Public dbdays As Integer
+    Public Subs_plan As String
+    Public customername As String
+    'Local variables
+    Public deviceid As String  'local deviceId
+    Public serialkey As String 'local serial Key
+    Public prod_type As String 'P , D or T'
+    Public devicenumber As Integer
+    Public remainingdays As Integer
+    Public end_date As Date
+    Public end_date2 As Date
+    Public strtdt As Date
+    Public strdt2 As Date
+    Public email2 As String
+
+    Public Const trialperiod As Integer = 30
+    Public activate_key As String 'key received from server as activationkey
+
+    Dim filename As String = Application.StartupPath & "\test_" + Date.Now.ToString("ddMMyyyy") + ".log"
+    Public sw As StreamWriter = AppendText(filename)
+    Private Passdt As String = Now.ToString("ddMMyyyy")
+    Dim astrowebservice As New ActivationKey.ActivationKey  'namespace.servicepage
+    Public tlicense As New AstroSubscribeDLL.TrialLicense
+    Public slicense As New AstroSubscribeDLL.SubscriptionLicense
+    Public conn = New MySqlConnection(ConfigurationManager.ConnectionStrings("constr").ConnectionString)
+
+    Private Sub Login_Load(sender As Object, e As EventArgs) Handles MyBase.Load
+
+        Me.CenterToScreen()
+
+        'Saving the Login Details for next time
+        If My.Settings.RememberMe = True Then
+            'chkbox_remember.Checked = True
+            txtmobile.Text = My.Settings.MobileNo
+            txtemail.Text = My.Settings.EmailID
+            '  txtPassword.Text = My.Settings.Password
+            customername = My.Settings.CustomerName
+
+        End If
+        lbl_datetime.Text = Now().ToString("dd/MM/yyyy hh:mm tt")
+        'Dim licpath As String = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\Version"
+        'If ApplicationDeployment.IsNetworkDeployed Then
+        '    If Not System.IO.Directory.Exists(licpath) Then
+        '        System.IO.Directory.CreateDirectory(licpath)
+        '    End If
+        '    If Not (IO.File.Exists(licpath + "Version.txt")) Then
+        '        Dim version As Version = My.Application.Deployment.CurrentVersion
+
+        '        Using writer As New StreamWriter(licpath + "\Version.txt")
+        '            writer.WriteLine(version)
+        '            writer.Close()
+        '        End Using
+        '    End If
+        'End If
+        ''file reader at runt time
+        'Dim fileReader As System.IO.StreamReader
+        'fileReader = My.Computer.FileSystem.OpenTextFileReader(licpath + "\Version.txt")
+        'Dim stringReader As String
+        'stringReader = fileReader.ReadLine()
+        'MsgBox("The first line of the file is " & stringReader)
+        ''Label2.Text = stringReader
+    End Sub
+
+    Private Sub btnLogin_Click(sender As Object, e As EventArgs) Handles btnLogin.Click
+        ' Saving the Login Details for next time
+
+        My.Settings.MobileNo = txtmobile.Text
+        My.Settings.EmailID = txtemail.Text.ToLower()
+        ' My.Settings.Password = txtPassword.Text
+        My.Settings.RememberMe = True
+        My.Settings.Save()
+        My.Settings.Reload()
+
+        ' Genrating Local Device ID from astrolicense
+        Dim lic As New AstroSubscribeDLL.AstroLicense
+        deviceid = lic.DeviceID   ''Local device ID  stored in the lic file
+        sw.WriteLine(Now() & " " & "DeviceID:" + deviceid)
+
+        Try
+
+            If UserFormatValid() = True Then ' We are checking the username as user entered  correct mobile number  and email format.
+                sw.WriteLine(Now() & " " & "Mobile No: " + txtmobile.Text + "  or  Email ID: " + txtemail.Text + " and Password: " + txtPassword.Text)
+
+                Dim rd1 As MySqlDataReader
+                rd1 = GetUserDetails() 'get all details for this username and password combination such as the subcription_period, end_date etc. 
+                If (rd1.Read()) Then 'user details are in the db and fetched from three tables
+                    uid = rd1(0) 'Getting the uid of the subscriber
+
+                    prod_type = rd1(8).ToString.Trim() 'product_type is subscription_type which will be available only in model table 
+                    My.Settings.productID = prod_type
+                    email2 = rd1(2).ToString.Trim()
+                    If prod_type = "T" Then
+                        strtdt = rd1(11).ToString.Trim()
+                        end_date = strtdt.AddDays(trialperiod).ToString("yyyy-MM-dd hh:mm:ss")
+                    Else
+                        end_date = rd1(9).ToString.Trim() 'For the first Device End date
+                        If email2 <> "" Then   'No second emailID means user not subscribed for the second device 
+                            end_date2 = rd1(10)
+                        End If
+                    End If
+
+
+                    'Registration of the device 1 or device 2
+                    If rd1(6).ToString.Trim = "" Then
+                        FirstTimeAccess(1)
+                    ElseIf rd1(7).ToString.Trim = "" Then
+                        FirstTimeAccess(2)
+                    End If
+
+                    '//***  Device Number is allocated here based on comparision of local deviceid with db_device id 1 and db_device_id 2
+                    If deviceid = rd1(6).ToString.Trim() Then 'matching deviceid from table model or B then user logged in with first device
+                        devicenumber = 1
+                        db_device_id = rd1(6).ToString.Trim()
+                    ElseIf deviceid = rd1(7).ToString.Trim() Then 'matching deviceid from table model2 or C then user logged in with second device. It handles deviceid 2 as Null case also
+                        devicenumber = 2
+                        db_device_id = rd1(7).ToString.Trim()
+                    Else
+                        MsgBox("Please Login with the authorized computer. This device is not subscribed")
+                        Application.Exit()
+                        End
+                    End If
+                Else
+                    MsgBox("No Details found. Please Restart the application.")
+                    Application.Exit()
+                    Me.Show()
+                    End
+                End If
+
+            Else
+                MsgBox("Please check and enter the correct username/Password. Please Restart the application.")
+                Application.Exit()
+                Me.Show()
+                End
+            End If  'for userformatvalid
+
+
+
+
+            '//at this stage user is using the first device or second is known  through devicenumber which is a local public variable.
+            'Keys(serial and activaiton) already exists in db. User wants to user the software already registered or he wants to Renew/Upgrade the license
+
+            dbdays = dbRemainingDays() 'remaining days of license as per database. It is based on end_date in the DB
+            'remainingdays are extracted below from the license file i.e. local remaining days
+            If slicense.IsValid() Then
+                remainingdays = slicense.RemainingDays
+            ElseIf tlicense.IsValid() Then
+                remainingdays = tlicense.RemainingDays
+            End If
+
+            'Trial is not given for the second device
+            If (devicenumber = 2) And (prod_type = "T") Then 'Trial is not allowed for second device
+                MsgBox("Trial License is given only for the First Device. Please Register for Pearl or Diamond for the Second Device")
+                System.Diagnostics.Process.Start("https://astrouser.com/product-subscription/")
+                Me.Hide()
+                Application.Exit()
+                End
+            End If
+
+            'If the remaining days for any product T or P or D for the first device or  P or D for the second device  are less than zero then Renewal required. 
+            If remainingdays < 0 Then
+                MsgBox("Subscription is expired.Please renew your account")
+                System.Diagnostics.Process.Start("https://astrouser.com/product-subscription/")
+                Me.Hide()
+                Application.Exit()
+                End
+            End If
+
+            Dim rd2 As MySqlDataReader
+            rd2 = GetDeviceDetails()  'get device details such as serial key, , activation key, end date, subs_type, subs_plan, and start date
+
+            If rd2.Read() Then ' user device details from table.
+                db_serial_Key = rd2(0).ToString.Trim()
+                db_activationKey = rd2(1).ToString.Trim()
+                Subs_plan = rd2(4).ToString.Trim()
+
+            End If
+
+
+            '/* The Logic for Renewal of subscription or TOPUP for either of the devices is in the below code */
+            If (dbdays > remainingdays And remainingdays >= 0) Then   ''Case for Renewal or Upgrade as dbdays are more means the customer has topped up more months 
+                'in the same product or he has upgraded his product
+                Dim tlic As New AstroSubscribeDLL.TrialLicense
+                serialkey = tlic.SerialKeySubscriptionTrial()  'New GUID/Trial key generated through internal generate() function
+                sw.WriteLine(Now() & " " & "SerialKey:" + serialkey)
+
+                'ActivationKey.asmx    'callActivationkey is a function written inside the web service
+                If prod_type = "P" Or prod_type = "D" Then 'User shoudl not be allowed to renew with Trial license after exhausting his trial period.
+                    activate_key = astrowebservice.CallActivationKey(prod_type, deviceid, serialkey, "A$trOWeb" + Passdt)
+                Else
+                    MsgBox("Trial License cannot be renewed. Please subscribe for Pearl or Diamond")
+                    System.Diagnostics.Process.Start("https://astrouser.com/product-subscription/")
+                    Me.Hide()
+                    Application.Exit()
+                    End
+                End If
+                ActivateLicense(activate_key, dbdays, prod_type, end_date) 'Activate license and put activation key in the licese.lic file
+                'devicenumber is either 1 or 2 accordingly the model or model2 table is updated with new keys
+                UpdateUserData()
+                Application.Exit()
+                End
+            End If
+
+
+            'Valid user license and user is not topping up.  He is just loggin into his account for the regular use.  We have to check for license expiry and warn if less than 7 days are left for expiry of license. 
+            'Warnings for renewal given 
+            If dbdays < 0 Then
+                MessageBox.Show("Your Subscription ended.Please Renew/Upgrade ", "Subscription Renewal")
+                System.Diagnostics.Process.Start("https://astrouser.com/renewal-subscription")
+                Me.Hide()
+            ElseIf dbdays <= 7 Then
+
+                Dim buttons As MessageBoxButtons = MessageBoxButtons.YesNo
+                Dim result As DialogResult = MessageBox.Show("Your subscription Product ( " & prod_type & " ) will end on " & end_date & "For Renew/Upgrade Click Yes button.", "Subscription", buttons)
+
+                If result = DialogResult.Yes Then
+                    Me.Hide()
+                    System.Diagnostics.Process.Start("https://astrouser.com/renewal-subscription")
+                ElseIf result = DialogResult.No Then 'Keys not NULL and the subscription is less than seven days but user wants to continue
+                    MsgBox("Login Sucessfully", MsgBoxStyle.OkOnly, "Subscription Valid")
+                    Me.Update()
+                    Me.Hide()
+                    Form1.Show()
+                End If
+            Else
+                MsgBox("Login Sucessfully", MsgBoxStyle.OkOnly, "Login")
+                Me.Hide()
+                Form1.Show()
+            End If
+
+        Catch ex As Exception
+            ' MsgBox("Error Loading Database", MsgBoxStyle.Critical, ex.Message)
+            MsgBox("Database Connection Error. Check Internet connectivity and Try Again.")
+        End Try
+
+    End Sub
+    Public Function GetUserDetails() 'get deviceId, serialkey, activationkey, username, password, end date, subs type, subs_plan in months, from two tables in the DB on innerjoin of uid from both tables to match
+        Try
+            Dim mobile, emailid, password As String
+            mobile = Trim(txtmobile.Text)
+            emailid = Trim(txtemail.Text)
+            password = Trim(txtPassword.Text)
+            Dim mySelectQuery As String
+            Dim myCommand As New MySqlCommand
+            conn.Open()
+
+            '' MySQL Commands
+            If emailid <> "" Then
+                mySelectQuery =
+                "Select A.uid,A.customer_email,A.customer_email2,A.customer_mobile,A.password, A.customer_name,
+                B.device_id,C.device_id,B.subscription_type,B.end_date,C.end_date,B.start_date,C.start_date                
+                from tester_astro.wp_subscription_users A
+                inner join tester_astro.wp_subscription_model B On B.uid=  A.uid 
+                left join  tester_astro.wp_subscription_model2 C on C.uid= A.uid
+                where (A.customer_email= '" + emailid + "' or A.customer_email2= '" + emailid + "') and A.password = '" + password + "'"
+            Else
+                'User to check with mobile number is valid user or not.
+                mySelectQuery =
+                "Select A.uid,A.customer_email,A.customer_email2,A.customer_mobile,A.password, A.customer_name,
+                B.device_id,C.device_id,B.subscription_type,B.end_date,C.end_date,B.start_date,C.start_date
+                from tester_astro.wp_subscription_users A
+                inner join tester_astro.wp_subscription_model B On B.uid=  A.uid 
+                left join  tester_astro.wp_subscription_model2 C on C.uid= A.uid
+                where (A.customer_mobile='" + mobile + "') and A.password = '" + password + "'"
+            End If
+
+
+            'Where condition is required to get a single row from the db which belong to the customer
+
+            'B.serialization_key,B.activation_key,B.end_date,B.subscription_type,B.subscription_plan,B.start_date, B.device_number, 
+            'C.serialization_key,C.activation_key,C.end_date,C.subscription_type,C.subscription_plan,C.start_date, C.device_number
+            myCommand.CommandText = mySelectQuery
+            myCommand.Connection = conn
+            Return myCommand.ExecuteReader()
+            conn.Close()
+        Catch ex As Exception
+            MsgBox(MsgBoxStyle.Critical, ex.Message)
+        End Try
+    End Function
+
+    Public Function GetDeviceDetails() 'get deviceId, serialkey, activationkey, username, password, end date, subs type, subs_plan in months, from two tables in the DB on innerjoin of uid from both tables to match
+        Try
+
+            Dim conn = New MySqlConnection(ConfigurationManager.ConnectionStrings("constr").ConnectionString)
+            Dim mydeviceQuerry As String
+            Dim myCommand As New MySqlCommand
+            conn.Open()
+
+            '' MySQL Commands
+            If devicenumber = 2 Then 'customer is a multi-device user and coming from a second device. 
+                mydeviceQuerry = "Select serialization_key,activation_key,end_date,subscription_type,subscription_plan,start_date
+                                  from tester_astro.wp_subscription_model2 where uid = '" + uid + "'"
+            Else
+                mydeviceQuerry = "Select serialization_key,activation_key,end_date,subscription_type,subscription_plan,start_date
+                                  from tester_astro.wp_subscription_model where uid = '" + uid + "'"
+            End If
+
+
+            myCommand.CommandText = mydeviceQuerry
+            myCommand.Connection = conn
+            Return myCommand.ExecuteReader()
+            conn.Close()
+        Catch ex As Exception
+            MsgBox(MsgBoxStyle.Critical, ex.Message)
+        End Try
+    End Function
+    Public Function dbRemainingDays() As String 'Derived from the end_date obtained from the DB
+        Dim subs_enddt As Date
+        If devicenumber = 2 Then
+            subs_enddt = end_date2
+        Else
+            subs_enddt = end_date
+        End If
+
+        Dim current_date As Date = DateTime.Now.ToString("yyyy/M/dd")
+        Dim daydiff As TimeSpan = subs_enddt.Subtract(current_date)
+        Dim days As String = Convert.ToInt32(daydiff.Days)
+        sw.WriteLine(Now() & " " & "End date:" + subs_enddt + " and Days: " + days + " and Product Type: " + prod_type)
+        Return days
+    End Function
+
+    Public Function UserFormatValid() As Boolean
+        Dim mobile, email, password As String
+        mobile = Trim(txtmobile.Text)
+        email = Trim(txtemail.Text)
+        password = Trim(txtPassword.Text)
+
+        ' For Indain need to enter only  10 digit mobile number
+
+        If IsNumeric(txtmobile.Text) Then
+            If (txtmobile.Text.Length = 10) Then
+
+                Dim PhoneNumber As String = "^[6789]\d{9}$"  'It Allows only Indian Mobile number starting with 6789
+                Dim ChekPhone As New Regex(PhoneNumber)
+                Dim PhoneValid As Boolean
+                PhoneValid = ChekPhone.IsMatch(txtmobile.Text)
+                If (PhoneValid = False) Then
+                    MessageBox.Show(" Please enter valid mobile number")
+                    Return False
+                Else
+                    Return True
+                End If
+            Else
+                MsgBox("Please enter the 10 digit mobile number")
+                Return False
+            End If
+        Else
+            ' For NRI  need to enter only email Id with gmail or yahoo or rediffmail domains only
+            If Not (Regex.IsMatch(txtemail.Text, "^([a-zA-Z0-9._%+-]{1,50})+(@gmail|@GMAIL|@YAHOO|@yahoo|@rediffmail|@REDDIFFMAIL)+(\.)+(com|COM)$")) Then
+                MessageBox.Show("Please enter valid Email")
+                Return False
+            Else
+                Return True
+            End If
+            'MsgBox("Please enter the 10 digit mobile number")
+            '    Return False
+        End If
+
+    End Function
+    Public Function FirstTimeAccess(Dno As Integer) ' This function generates the license file and updates serial and activation keys for the device under consideration in database. Dno is device number passed on as a parameter.
+        'The same code is useful for checking for both the devices
+        devicenumber = Dno
+        Dim subs As New AstroSubscribeDLL.TrialLicense
+        serialkey = subs.SerialKeySubscriptionTrial()  'First time GUID key generated through internal generate() function.
+        sw.WriteLine(Now() & " " & "SerialKey:" + serialkey)
+        dbdays = dbRemainingDays() 'remaining days of license as per database. It is based on end_date in the DB
+        'callActivationkey is a function written inside the web service  via ActivationKey.asmx  
+        activate_key = astrowebservice.CallActivationKey(prod_type, deviceid, serialkey, "A$trOWeb" + Passdt)
+        ActivateLicense(activate_key, dbdays, prod_type, end_date) 'Activate license and put activation key in the licese.lic file
+        UpdateUserData()  'updates serial key and activation key in the model table of the database
+        Application.Exit()
+        End
+    End Function
+    Public Function UpdateUserData()
+        ' Dim conn = New MySqlConnection(ConfigurationManager.ConnectionStrings("constr").ConnectionString)
+        '  If ((db_activationKey = "" Or db_serial_Key IsNot DBNull.Value)) Then
+        Dim command As New MySqlCommand
+        Dim update As String
+        If devicenumber = 2 Then
+            update = "update tester_astro.wp_subscription_model2 SET serialization_key= '" & serialkey & "',activation_key= '" & activate_key & "', device_id='" & deviceid & "', modified_date='" & Now().ToString("yyyy-MM-dd hh:mm:ss") & "' where serialization_key is not Null and activation_key is not Null and device_id is not Null and  uid='" & uid & "'"
+        Else
+            update = "update tester_astro.wp_subscription_model SET serialization_key= '" & serialkey & "',activation_key= '" & activate_key & "', device_id='" & deviceid & "' , modified_date='" & Now().ToString("yyyy-MM-dd hh:mm:ss") & "' where serialization_key is not Null and activation_key is not Null and device_id is not Null and  uid='" & uid & "'"
+
+        End If
+
+        command.Connection = conn
+        command.CommandText = update
+        'conn.Open() ''DB connection Open
+        command.ExecuteNonQuery()
+        If prod_type = "T" Then  ''Update the end_date in the database which is not available as user does not subscribe
+            Dim enddate_update As String
+            If devicenumber = 2 Then
+                enddate_update = "update tester_astro.wp_subscription_model2 Set end_date= '" & end_date.ToString("yyyy-MM-dd hh:mm:ss") & "', modified_date='" & Now().ToString("yyyy-MM-dd hh:mm:ss") & "' where uid='" & uid & "'"
+            Else
+                enddate_update = "update tester_astro.wp_subscription_model Set end_date= '" & end_date.ToString("yyyy-MM-dd hh:mm:ss") & "', modified_date='" & Now().ToString("yyyy-MM-dd hh:mm:ss") & "' where uid='" & uid & "'"
+            End If
+
+            command.CommandText = enddate_update
+            command.ExecuteNonQuery()
+        End If
+
+        conn.Close() '' Closing Database.
+
+    End Function
+
+
+    Public Function ActivateLicense(serverkey As String, balancedays As Integer, product As String, lastdate As String)
+
+        If product = "P" Or product = "D" Then
+            Dim sublicense As New AstroSubscribeDLL.SubscriptionLicense
+            If sublicense.Activate(serverkey, balancedays) Then
+                MsgBox(" Astro License activated till " + lastdate + " Please restart the application.", MessageBoxButtons.OK)
+
+            End If
+
+        ElseIf product = "T" Then
+            Dim tlicense As New AstroSubscribeDLL.TrialLicense
+            If tlicense.Activate(serverkey, trialperiod) Then
+                MsgBox(" Astro Trial License activated till " + lastdate + " Please restart the application.")
+            End If
+        Else
+            MsgBox("Product Type is Incorrect!")
+        End If
+
+        sw.WriteLine(Now() & "" & "ActivationKey: " & activate_key)
+        sw.Close()
+
+    End Function
+
+
+
+#Region "File Creation"
+    Public Function Filegeneration() As Boolean
+        Try
+            Dim licpath As String = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\AstroSubscribe"
+            If Not System.IO.Directory.Exists(licpath) Then
+                System.IO.Directory.CreateDirectory(licpath)
+            End If
+            If Not (IO.File.Exists(licpath + "license.lic")) Then
+                Dim message As String = activate_key
+                Using writer As New StreamWriter(licpath + "\license.lic")
+                    writer.WriteLine(message)
+                    writer.Close()
+                End Using
+            End If
+            Return True
+        Catch ex As Exception
+            ''MsgBox(" Astro License activated till " + lastdate + "Please restart the application.")
+        End Try
+#End Region
+    End Function
+
+    Private Sub txtmobile_TextChanged(sender As Object, e As EventArgs) Handles txtmobile.TextChanged
+        txtemail.Enabled = False
+        ''MsgBox(" Astro Trial License activated till " + lastdate + " Please restart the application.")
+
+    End Sub
+    Private Sub txtemail_TextChanged(sender As Object, e As EventArgs) Handles txtemail.TextChanged
+        txtmobile.Enabled = False
+    End Sub
+
+
+    Private Sub LinkLabel1_LinkClicked(sender As Object, e As LinkLabelLinkClickedEventArgs) Handles LinkLabel1.LinkClicked
+        txtemail.Text = ""
+        txtmobile.Text = ""
+        txtPassword.Text = ""
+        txtemail.Enabled = True
+        txtmobile.Enabled = True
+    End Sub
+
+    Private Sub Button1_Click(sender As Object, e As EventArgs) Handles btnupgrade.Click
+        Dim buttons As MessageBoxButtons = MessageBoxButtons.YesNo
+        Dim result As DialogResult = MessageBox.Show("Do you want to continue for upgrade. Please click yes", "Upgrade", buttons)
+
+        If result = DialogResult.Yes Then
+            Me.Hide()
+            System.Diagnostics.Process.Start("https://astrouser.com/renewal-subscription")
+        ElseIf result = DialogResult.No Then
+            Me.Show()
+        End If
+
+    End Sub
+
+    Private Sub Panel1_Paint(sender As Object, e As PaintEventArgs) Handles Instruction.Paint
+
+        product_head.Text = "PRODUCT PURCHASE POLICY"
+        Prod_info.Text = "
+1.	Trial for 30 days on any desktop with full functionality (*Restriction of customer base).  After expiring of Trial, again user can’t install it on the same device & renew trial.
+2.	Trial to Pearl & Trial to Diamond is available anytime on subscription of Monthly or for Six Months, Annual & for Three Years.
+3.	Top up can be done any time before expiring of expiring of the subscription.
+4.	Product Change from Pearl to Diamond & vice-versa is allowed only at the TOP-UP time.  
+a.	The rate difference is to be paid for upgrade from Pearl to Diamond & Extra days are added to the remaining days on Downgrade i.e. from Diamond to Pearl.  There is no ‘Refund’ of difference amount on downgrade.
+5.	The subscription tariffs change from time to time & the current plan is applicable at the time of New Subscription or at the time of TOP-UP.
+6.	The Subscription is for maximum two devices & the Second device has a concession of 40% on the subscription tariff applicable for the first device.  The rules for Second device subscription are –
+6a.	The first device is with the subscription of pearl or Diamond and not having a Trial subscription.
+6b.	The second device subscription is for the product of first device i.e. if first has 'PEARL' the second device is also for 'PEARL' only.
+6c.	Second device subscription period is capped to the first device subscription.  It can be subscribed for a lesser period than the first device.  
+e.g. : First Device is under subscription for 3 months then second can be subscribed to an extent of 3 months only and not more. 
+If customer wants more subscription on second device then he has to increase the subscription of the first device.
+6d.	Except the condition in 6(c), the customer can TOP-UP subscription for first & second devices independently."
+
+
+    End Sub
+End Class

@@ -1,0 +1,10 @@
+﻿[*.vb]
+
+# BC42105: Function doesn't return a value on all code paths
+dotnet_diagnostic.BC42105.severity = suggestion
+
+# BC42353: Function doesn't return a value on all code paths
+dotnet_diagnostic.BC42353.severity = suggestion
+
+# IDE0058: Expression value is never used
+visual_basic_style_unused_value_expression_statement_preference = discard_variable

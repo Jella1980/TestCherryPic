@@ -1,0 +1,224 @@
+<?xml version="1.0" encoding="utf-8"?>
+<wsdl:definitions xmlns:soapenc="http://schemas.xmlsoap.org/soap/encoding/" xmlns:mime="http://schemas.xmlsoap.org/wsdl/mime/" xmlns:tns="http://tempuri.org/" xmlns:s="http://www.w3.org/2001/XMLSchema" xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/" xmlns:tm="http://microsoft.com/wsdl/mime/textMatching/" xmlns:http="http://schemas.xmlsoap.org/wsdl/http/" xmlns:soap12="http://schemas.xmlsoap.org/wsdl/soap12/" targetNamespace="http://tempuri.org/" xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/">
+  <wsdl:types>
+    <s:schema elementFormDefault="qualified" targetNamespace="http://tempuri.org/">
+      <s:element name="HelloWorld">
+        <s:complexType />
+      </s:element>
+      <s:element name="HelloWorldResponse">
+        <s:complexType>
+          <s:sequence>
+            <s:element minOccurs="0" maxOccurs="1" name="HelloWorldResult" type="s:string" />
+          </s:sequence>
+        </s:complexType>
+      </s:element>
+      <s:element name="ActivationKey">
+        <s:complexType>
+          <s:sequence>
+            <s:element minOccurs="0" maxOccurs="1" name="ProductID" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="DeviceID" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="SerialKey" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="PassCode" type="s:string" />
+          </s:sequence>
+        </s:complexType>
+      </s:element>
+      <s:element name="ActivationKeyResponse">
+        <s:complexType>
+          <s:sequence>
+            <s:element minOccurs="0" maxOccurs="1" name="ActivationKeyResult" type="s:string" />
+          </s:sequence>
+        </s:complexType>
+      </s:element>
+      <s:element name="Password">
+        <s:complexType>
+          <s:sequence>
+            <s:element minOccurs="0" maxOccurs="1" name="TokenID" type="s:string" />
+          </s:sequence>
+        </s:complexType>
+      </s:element>
+      <s:element name="PasswordResponse">
+        <s:complexType>
+          <s:sequence>
+            <s:element minOccurs="0" maxOccurs="1" name="PasswordResult" type="s:string" />
+          </s:sequence>
+        </s:complexType>
+      </s:element>
+      <s:element name="BasePath">
+        <s:complexType />
+      </s:element>
+      <s:element name="BasePathResponse">
+        <s:complexType>
+          <s:sequence>
+            <s:element minOccurs="0" maxOccurs="1" name="BasePathResult" type="s:string" />
+          </s:sequence>
+        </s:complexType>
+      </s:element>
+      <s:element name="GetLicenceKey">
+        <s:complexType />
+      </s:element>
+      <s:element name="GetLicenceKeyResponse">
+        <s:complexType>
+          <s:sequence>
+            <s:element minOccurs="0" maxOccurs="1" name="GetLicenceKeyResult" type="s:string" />
+          </s:sequence>
+        </s:complexType>
+      </s:element>
+    </s:schema>
+  </wsdl:types>
+  <wsdl:message name="HelloWorldSoapIn">
+    <wsdl:part name="parameters" element="tns:HelloWorld" />
+  </wsdl:message>
+  <wsdl:message name="HelloWorldSoapOut">
+    <wsdl:part name="parameters" element="tns:HelloWorldResponse" />
+  </wsdl:message>
+  <wsdl:message name="ActivationKeySoapIn">
+    <wsdl:part name="parameters" element="tns:ActivationKey" />
+  </wsdl:message>
+  <wsdl:message name="ActivationKeySoapOut">
+    <wsdl:part name="parameters" element="tns:ActivationKeyResponse" />
+  </wsdl:message>
+  <wsdl:message name="PasswordSoapIn">
+    <wsdl:part name="parameters" element="tns:Password" />
+  </wsdl:message>
+  <wsdl:message name="PasswordSoapOut">
+    <wsdl:part name="parameters" element="tns:PasswordResponse" />
+  </wsdl:message>
+  <wsdl:message name="BasePathSoapIn">
+    <wsdl:part name="parameters" element="tns:BasePath" />
+  </wsdl:message>
+  <wsdl:message name="BasePathSoapOut">
+    <wsdl:part name="parameters" element="tns:BasePathResponse" />
+  </wsdl:message>
+  <wsdl:message name="GetLicenceKeySoapIn">
+    <wsdl:part name="parameters" element="tns:GetLicenceKey" />
+  </wsdl:message>
+  <wsdl:message name="GetLicenceKeySoapOut">
+    <wsdl:part name="parameters" element="tns:GetLicenceKeyResponse" />
+  </wsdl:message>
+  <wsdl:portType name="ActivationKeySoap">
+    <wsdl:operation name="HelloWorld">
+      <wsdl:input message="tns:HelloWorldSoapIn" />
+      <wsdl:output message="tns:HelloWorldSoapOut" />
+    </wsdl:operation>
+    <wsdl:operation name="ActivationKey">
+      <wsdl:input message="tns:ActivationKeySoapIn" />
+      <wsdl:output message="tns:ActivationKeySoapOut" />
+    </wsdl:operation>
+    <wsdl:operation name="Password">
+      <wsdl:input message="tns:PasswordSoapIn" />
+      <wsdl:output message="tns:PasswordSoapOut" />
+    </wsdl:operation>
+    <wsdl:operation name="BasePath">
+      <wsdl:input message="tns:BasePathSoapIn" />
+      <wsdl:output message="tns:BasePathSoapOut" />
+    </wsdl:operation>
+    <wsdl:operation name="GetLicenceKey">
+      <wsdl:input message="tns:GetLicenceKeySoapIn" />
+      <wsdl:output message="tns:GetLicenceKeySoapOut" />
+    </wsdl:operation>
+  </wsdl:portType>
+  <wsdl:binding name="ActivationKeySoap" type="tns:ActivationKeySoap">
+    <soap:binding transport="http://schemas.xmlsoap.org/soap/http" />
+    <wsdl:operation name="HelloWorld">
+      <soap:operation soapAction="http://tempuri.org/HelloWorld" style="document" />
+      <wsdl:input>
+        <soap:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="ActivationKey">
+      <soap:operation soapAction="http://tempuri.org/ActivationKey" style="document" />
+      <wsdl:input>
+        <soap:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="Password">
+      <soap:operation soapAction="http://tempuri.org/Password" style="document" />
+      <wsdl:input>
+        <soap:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="BasePath">
+      <soap:operation soapAction="http://tempuri.org/BasePath" style="document" />
+      <wsdl:input>
+        <soap:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="GetLicenceKey">
+      <soap:operation soapAction="http://tempuri.org/GetLicenceKey" style="document" />
+      <wsdl:input>
+        <soap:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+  </wsdl:binding>
+  <wsdl:binding name="ActivationKeySoap12" type="tns:ActivationKeySoap">
+    <soap12:binding transport="http://schemas.xmlsoap.org/soap/http" />
+    <wsdl:operation name="HelloWorld">
+      <soap12:operation soapAction="http://tempuri.org/HelloWorld" style="document" />
+      <wsdl:input>
+        <soap12:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap12:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="ActivationKey">
+      <soap12:operation soapAction="http://tempuri.org/ActivationKey" style="document" />
+      <wsdl:input>
+        <soap12:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap12:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="Password">
+      <soap12:operation soapAction="http://tempuri.org/Password" style="document" />
+      <wsdl:input>
+        <soap12:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap12:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="BasePath">
+      <soap12:operation soapAction="http://tempuri.org/BasePath" style="document" />
+      <wsdl:input>
+        <soap12:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap12:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="GetLicenceKey">
+      <soap12:operation soapAction="http://tempuri.org/GetLicenceKey" style="document" />
+      <wsdl:input>
+        <soap12:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap12:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+  </wsdl:binding>
+  <wsdl:service name="ActivationKey">
+    <wsdl:port name="ActivationKeySoap" binding="tns:ActivationKeySoap">
+      <soap:address location="https://astrouser.com/astroapp/astrotestweb/ActivationKey.asmx" />
+    </wsdl:port>
+    <wsdl:port name="ActivationKeySoap12" binding="tns:ActivationKeySoap12">
+      <soap12:address location="https://astrouser.com/astroapp/astrotestweb/ActivationKey.asmx" />
+    </wsdl:port>
+  </wsdl:service>
+</wsdl:definitions>

@@ -1,0 +1,27 @@
+﻿ 1. ASTRO-Trial for 30 days allowed on any desktop with full functionality (with Restriction of customer base).  After the expiry of Trial,  user can’t reinstall ASTRO or renew the trial license.
+
+ 2. Subscription can be taken anytime for Product 'Pearl'or 'Diamond'  during trial period. Subscription available for Monthly/Six Months/Annual & for Three Years.
+
+ 3. Subscription 'Top up'/renewal can be done any time before expiring of the ongoing subscription.
+
+ 4. Product can be Changed from Pearl to Diamond & vice-versa only at the TOP-UP time. Minimum Top-Up/Renewal for one month to change the Product anytime. 
+
+ 5. The rate difference is to be paid to upgrade subscription from Pearl to Diamond
+
+ 6. On change of Product from Diamond to Pearl, remaining days on the day of convertion are added to the subscription with pro rata days conversion with the ratio of product rates. 
+
+ 7. The subscription tariffs change from time to time & the current plan is applicable at the time of renewal/Top-up of Subscription
+
+ 8. A concession of 40% is available on subscripton tariff for taking subscription for the Second computer.Maximum two computers are allowed for subscription for the same Customer. 
+
+ 9. For the second computer subscription, the first computer must be subscribed with Pearl or Diamond and not having a Trial subscription.
+
+ 10. The second computer subscription is allowed only for the same product that is subscribed for the first computer. i.e. if first has 'PEARL' the second computer is also for 'PEARL' only.
+
+ 11. Second computer subscription period is capped to the first computer subscription.  It can be subscribed for a lesser period than the first computer but not more.  
+
+ 12. e.g. : First computer is under subscription for 3 months then second can be subscribed to an extent of 3 months only and not more. 
+
+ 13. If customer wants more subscription on second computer then he has to increase the subscription of the first computer.
+
+ 14. Except the above conditions in 9 to 11, the customer can TOP-UP subscription for first & second computers independently."
